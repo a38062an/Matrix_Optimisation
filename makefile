@@ -1,4 +1,4 @@
-OPT=
+OPT=-O3
 CFLAGS=-fopenmp -mavx
 
 all: matrix_multiply.out

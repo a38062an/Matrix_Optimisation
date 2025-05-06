@@ -79,8 +79,8 @@ def run_experiments(start_size, end_size, step_size, trials=3):
     df = pd.DataFrame(results)
 
     # Save results to CSV
-    df.to_csv('csv/matrix_multiply_results.csv', index=False)
-    print("\nResults saved to matrix_multiply_results.csv")
+    df.to_csv('csv/matrix_multiply_optimised_results.csv', index=False)
+    print("\nResults saved to matrix_multiply_optimised_results.csv")
 
     return df
 
@@ -103,8 +103,8 @@ def plot_results(df):
     plt.tight_layout()
 
     # Save the plot
-    plt.savefig('plots/matrix_multiply_baseline_performance_mflops.png', dpi=300)
-    print("Plot saved to matrix_multiply_baseline_performance_mflops.png")
+    plt.savefig('plots/matrix_multiply_optimised_performance_mflops.png', dpi=300)
+    print("Plot saved to matrix_multiply_optimised_performance_mflops.png")
 
     # Also display the plot
     plt.show()

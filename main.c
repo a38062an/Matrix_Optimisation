@@ -8,11 +8,23 @@
 #define PRINT_MATRICES 0 // Determines whether to print matrices
 #define MIN 0.0 // Min value in matrix
 #define MAX 1.0 // Max value in matrix
-#define UNROLL 4 // Number of times to unroll loop in unrolled_matrix_multiply()
+//#define UNROLL 4 // Number of times to unroll loop in unrolled_matrix_multiply()
+
+#ifndef UNROLL
+#define UNROLL 4
+#endif
+
 #define OMP_THREADS 4 // Number of threads to use with omp pragma
-#define BLOCK_SIZE 32 // Block size when using blocked_matrix_multiply()
+// #define BLOCK_SIZE 8 // Block size when using blocked_matrix_multiply()
+
+#ifndef BLOCK_SIZE
+#define BLOCK_SIZE 32 // Default block size if not defined by flag
+#endif
+
 #define MM256_STRIDE 4 // Number of doubles operated on simultaneously in AVX instructions
 #define MEM_ALIGN 32 // Memory alignment required for _mm256 instructions
+
+
 
 void print_help_and_exit(char **argv) {
     printf("usage: %s <L> <M> <N> <seed>\n", argv[0]);
@@ -155,6 +167,57 @@ void subword_parallelism_matrix_multiply(double **A, double **B, double **C, int
     }
 }
 
+
+/* Optimized matrix multiplication combining multiple optimization techniques
+ * size of A is LxM
+ * size of B is MxN
+ * C should be allocated of size LxN
+ */
+void optimized_matrix_multiply(double **A, double **B, double **C, int L, int M, int N) {
+    // Define optimal block size based on benchmark data
+    const int OPTIMAL_BLOCK_SIZE = 8;
+
+    // Memory padding and alignment for better AVX performance
+    // We use aligned_alloc for matrices A, B, C in the main function
+
+    // Use OpenMP for parallelization across blocks
+    #pragma omp parallel for num_threads(12)
+    for(int si=0; si<L; si+=OPTIMAL_BLOCK_SIZE) {
+        for(int sj=0; sj<N; sj+=OPTIMAL_BLOCK_SIZE) {
+            // Process one block at a time for better cache usage
+            for(int sk=0; sk<M; sk+=OPTIMAL_BLOCK_SIZE) {
+                // Block boundaries with limit checking
+                int imax = (si+OPTIMAL_BLOCK_SIZE < L) ? si+OPTIMAL_BLOCK_SIZE : L;
+                int jmax = (sj+OPTIMAL_BLOCK_SIZE < N) ? sj+OPTIMAL_BLOCK_SIZE : N;
+                int kmax = (sk+OPTIMAL_BLOCK_SIZE < M) ? sk+OPTIMAL_BLOCK_SIZE : M;
+
+                // Process each block
+                for(int i=si; i<imax; i++) {
+                    for(int j=sj; j<jmax; j+=MM256_STRIDE) {
+                        // Use AVX intrinsics for SIMD parallelism
+                        __m256d c0 = _mm256_load_pd(&C[i][j]);
+
+                        // Inner loop with unrolling factor of 4
+                        for(int k=sk; k<kmax; k+=4) {
+                            // Process 4 elements at once (loop unrolling)
+                            for(int u=0; u<4 && k+u<kmax; u++) {
+                                c0 = _mm256_add_pd(c0,
+                                        _mm256_mul_pd(_mm256_load_pd(&B[k+u][j]),
+                                        _mm256_broadcast_sd(&A[i][k+u])));
+                            }
+                        }
+
+                        // Store the result back to memory
+                        _mm256_store_pd(&C[i][j], c0);
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+
 /*
  * Free:
  * - A of size LxM
@@ -276,11 +339,12 @@ int main(int argc, char **argv) {
     gettimeofday(&start, NULL);
 
     // Call one of the matrix multiply functions below:
-    matrix_multiply(A, B, C, L, M, N);
-    // unrolled_matrix_multiply(A, B, C, L, M, N);
-    // multicore_matrix_multiply(A, B, C, L, M, N);
-    // blocked_matrix_multiply(A, B, C, L, M, N);
-    // subword_parallelism_matrix_multiply(A, B, C, L, M, N);
+    //matrix_multiply(A, B, C, L, M, N);
+    //unrolled_matrix_multiply(A, B, C, L, M, N);
+    //multicore_matrix_multiply(A, B, C, L, M, N);
+    //blocked_matrix_multiply(A, B, C, L, M, N);
+    //subword_parallelism_matrix_multiply(A, B, C, L, M, N);
+    optimized_matrix_multiply(A, B, C, L, M, N);
 
     gettimeofday(&stop, NULL);
     timersub(&stop, &start, &total);

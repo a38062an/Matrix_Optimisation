@@ -79,7 +79,7 @@ def run_experiments(start_size, end_size, step_size, trials=3):
     df = pd.DataFrame(results)
 
     # Save results to CSV
-    df.to_csv('csv/matrix_multiply_results.csv', index=False)
+    df.to_csv('csv/matrix_multiply_simd_results.csv', index=False)
     print("\nResults saved to matrix_multiply_results.csv")
 
     return df
@@ -96,14 +96,14 @@ def plot_results(df):
     plt.errorbar(df['Size'], mflops_avg, yerr=mflops_std,
                  fmt='o-', linewidth=2, markersize=8, capsize=5)
 
-    plt.title('Matrix Multiplication Performance (Baseline)', fontsize=16)
+    plt.title('Matrix Multiplication Performance (simd)', fontsize=16)
     plt.xlabel('Matrix Dimension (N for NxN matrices)', fontsize=14)
     plt.ylabel('Performance (MFLOPS)', fontsize=14)
     plt.grid(True, linestyle='--', alpha=0.7)
     plt.tight_layout()
 
     # Save the plot
-    plt.savefig('plots/matrix_multiply_baseline_performance_mflops.png', dpi=300)
+    plt.savefig('plots/matrix_multiply_simd_performance_mflops.png', dpi=300)
     print("Plot saved to matrix_multiply_baseline_performance_mflops.png")
 
     # Also display the plot
